@@ -1,0 +1,142 @@
+Initial attempt to generate full app with AI (too complex, failed on 0G Labs).
+Then simplified to MVP prompt.
+
+Build a mobile-first Web3 game application on 0G Labs using an EVM-compatible smart contract and an AI agent.
+
+GAME CONCEPT:
+This is a precision-based crypto jackpot game.
+
+Players deposit crypto into a shared pot. The pot value is displayed in USD and changes in real-time based on the market price of the crypto asset.
+
+The goal is to make the pot reach EXACTLY $1,000,000 USD.
+
+CORE GAME RULES:
+
+- Players connect their wallet (MetaMask / Rabby)
+- Players deposit crypto into the pot
+- The pot value is tracked in USD using a price oracle
+
+WIN CONDITION:
+If a player makes the pot reach exactly $1,000,000 USD, that player wins the entire pot.
+
+FAIL CONDITION:
+If any deposit causes the pot to exceed $1,000,000 USD:
+- The round is marked as FAILED
+- No winner is selected
+- All players can claim a full refund of their deposits
+
+IMPORTANT:
+Refunds are not automatic. Each player must click “Claim Refund” to withdraw their funds.
+
+GAME STRUCTURE:
+
+- The game runs in rounds
+- Each round has:
+  - total pot
+  - target value ($1,000,000)
+  - status: ACTIVE / WON / FAILED
+  - list of deposits per user
+
+SMART CONTRACT REQUIREMENTS:
+
+- EVM-compatible
+- Accept crypto deposits
+- Track total pot in crypto
+- Integrate price oracle to calculate USD value
+- Detect exact target match
+- Detect overshoot (fail condition)
+- Store user deposits per round
+- Allow users to claim refunds if round failed
+- Transfer full pot to winner if exact match
+- Emit events for deposits, win, fail, and refunds
+- Include basic security:
+  - reentrancy protection
+  - safe transfers
+  - no admin withdrawal of user funds
+
+FRONTEND REQUIREMENTS:
+
+- Mobile-first design
+- Single page interface
+- Large live pot value in USD
+- Show crypto balance of pot
+- Show target ($1,000,000)
+- Show distance to target
+- Wallet connection (MetaMask / Rabby)
+
+Main actions:
+- Input field for deposit amount
+- “Add Crypto” button
+- “Claim Refund” button (visible when round failed)
+
+Show:
+- Round status (Active / Won / Failed)
+- Last contributor
+- Deposit history
+- Clear warning message:
+
+“If the pot exceeds $1,000,000, the round fails and all players must claim refunds.”
+
+AI AGENT INTEGRATION:
+
+Add an AI Game Master agent called “Milly”.
+
+Milly is part of the core experience, not just a chatbot.
+
+Milly reads:
+- pot value in USD
+- crypto balance
+- token price
+- distance to target
+- recent deposits
+- round status
+- last contributor
+
+Milly responsibilities:
+
+1. Live Commentary:
+Generate short real-time messages like:
+- “The pot is getting dangerously close to the target.”
+- “One wrong move could reset the entire round.”
+
+2. Game Explanation:
+Explain rules simply to new users.
+
+3. Scenario Simulation:
+Simulate deposits:
+“If you add this amount, the pot may exceed the target and fail the round.”
+
+4. Risk Awareness:
+Warn users when the pot is close to failing.
+
+IMPORTANT AI RULES:
+- No financial advice
+- No telling users to deposit
+- No promises of winning
+- Only explain game mechanics
+
+UI for AI:
+- “Milly AI Game Master” card
+- Show mood (calm / intense / danger)
+- Show live message
+- Chat input
+- Suggested questions:
+  - “Explain the game”
+  - “How close are we?”
+  - “Will this deposit fail the round?”
+
+FINAL GOAL:
+
+Create a simple, viral, high-tension Web3 game that combines:
+- precision gameplay
+- zero-loss mechanics (refund system)
+- AI-driven experience
+- real-time crypto price dynamics
+
+OUTPUT:
+
+Generate:
+1. Smart contract code
+2. Frontend UI
+3. AI agent integration
+4. Basic instructions to run the project

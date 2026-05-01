@@ -1,0 +1,48 @@
+# AI Prompts Log
+
+## 1. Initial MVP Prompt
+
+Used to generate the first version of the game UI.
+
+Build a mobile-first EVM game application with simple wallet connection using MetaMask and Rabby.
+
+The app should be a single-page interface with a large central number showing the current money pot in USD.
+
+Under the pot, include one main button: “Add Money”.
+
+Game concept:
+Users can add funds to the shared pot. The objective is to be the user who makes the total pot reach an exact full million-dollar milestone, such as $1,000,000, $2,000,000, $3,000,000, and so on.
+
+If a user adds an amount that makes the pot exactly reach the next million-dollar milestone, that user wins $1,000,000.
+
+If the contribution causes the pot to go over the current million-dollar milestone, no one wins and the game continues toward the next million-dollar milestone.
+
+Example:
+Current pot: $999,999.99
+User adds: $0.01
+New pot: $1,000,000.00
+This user wins $1,000,000.
+
+The remaining funds stay in the contract and continue supporting the next million-dollar round.
+
+Design requirements:
+- Mobile-first
+- One-page layout
+- Big bold pot number
+- Simple and clean UI
+- Clear wallet connection
+- Clear “Add Money” button
+- Show current target milestone
+- Show last contributor
+- Show winner history
+- Make the game feel exciting, simple, and viral
+
+Smart contract requirements:
+- EVM-compatible
+- Wallet connection with MetaMask and Rabby
+- Transparent pot balance
+- Track each contribution
+- Detect when the pot reaches an exact million-dollar milestone
+- Automatically assign the winner
+- Keep the remaining pot active for future milestones
+- Include basic security protections against exploits

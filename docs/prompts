@@ -46,3 +46,100 @@ Smart contract requirements:
 - Automatically assign the winner
 - Keep the remaining pot active for future milestones
 - Include basic security protections against exploits
+
+
+---
+
+## 2. Milly AI Integration
+
+Added AI Game Master component.
+
+Enhance the existing Million Pot Game frontend by adding a simple AI Game Master called Milly.
+
+Do not rebuild the entire app. Only add a new UI component.
+
+Add a card section below the main game area called:
+
+“Milly — AI Game Master”
+
+This component should include:
+
+- A short dynamic message from Milly
+- A simple mood indicator (calm, close, danger)
+- A small chat input field
+- 3 suggested buttons:
+  - “Explain the game”
+  - “How close are we?”
+  - “What happens if I deposit now?”
+
+Behavior:
+
+Milly should generate simple messages based on the game state.
+
+Examples:
+- “The pot is still far from the target.”
+- “We are getting closer to $1,000,000.”
+- “Be careful. The pot is very close. One wrong move can fail the round.”
+
+Milly should be a frontend simulation only (no real AI integration yet).
+
+Use mock logic like:
+- If distance > 200k → mood = calm
+- If distance < 50k → mood = close
+- If distance < 10k → mood = danger
+
+Style:
+- Keep it minimal
+- Match the existing UI
+- Mobile-first design
+- Clean card with soft border or shadow
+
+Important:
+Do not connect to blockchain or APIs.
+Do not use real AI yet.
+This is only a visual and logical prototype.
+
+Output:
+Updated frontend with the Milly component integrated.
+
+---
+
+## 3. Claim Refund Logic
+
+Added fail condition and refund button.
+
+Before improving Milly, implement the $1M claim logic in the existing Million Pot Game.
+
+Do not rebuild the entire app. Only update the current game logic and UI.
+
+Game rule:
+- The target is exactly $1,000,000.
+- If the pot reaches exactly $1,000,000, the last depositor wins.
+- If the pot crosses above $1,000,000, the round fails.
+- When the round fails, users should be able to claim their refund.
+
+Add a “Claim Refund” button.
+
+Button behavior:
+- Show the Claim Refund button only when the pot is above $1,000,000 or round status is Failed.
+- Hide the Add Crypto button when the round has failed.
+- When the user clicks Claim Refund, show a success message:
+  “Refund claimed successfully.”
+- After refund is claimed, update the UI to show:
+  “You have claimed your refund.”
+
+For now, use mock frontend logic only.
+Do not connect to a real smart contract yet.
+
+UI requirements:
+- Show current pot
+- Show target: $1,000,000
+- Show round status: Active / Won / Failed
+- Show clear warning when failed:
+  “The pot crossed $1,000,000. This round failed. Players can claim their refunds.”
+- Keep the design mobile-first and consistent with the current app.
+
+Important:
+This is a frontend prototype only.
+Use mock data and local state.
+Do not rebuild the app from scratch.

@@ -24,3 +24,8 @@ This project includes an AI Game Master that:
 - 0G Labs (AI)
 - MetaMask / Rabby
 - Mobile-first UI
+
+## AI Development Process
+
+This project was built using iterative AI prompting.
+See /docs/prompts.md

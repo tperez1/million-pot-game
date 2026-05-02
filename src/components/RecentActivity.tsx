@@ -1,63 +1,48 @@
-import { Clock, Trophy, User } from 'lucide-react';
-import { useGame } from '../hooks/useGame';
+import { useGameStore } from '../store/gameStore';
+import { formatUSD, formatOG, formatTimeAgo } from '../utils/format';
+import { Activity, ArrowUpRight } from 'lucide-react';
 
-export function RecentActivity() {
-  const { lastContributor, lastContributionAmount, latestWinner, latestWinAmount, latestWinMilestone } = useGame();
-
-  const formatAddress = (addr: string) => {
-    if (!addr) return '—';
-    return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
-  };
-
-  const formatTime = (timestamp: number) => {
-    const diff = Date.now() - timestamp;
-    const minutes = Math.floor(diff / 60000);
-    if (minutes < 60) return `${minutes}m ago`;
-    const hours = Math.floor(minutes / 60);
-    if (hours < 24) return `${hours}h ago`;
-    return `${Math.floor(hours / 24)}d ago`;
-  };
-
+export default function RecentActivity() {
+  const { currentRound } = useGameStore();
+  const { contributions, roundNumber, status } = currentRound;
+  
+  const recentContributions = contributions.slice(-5).reverse();
+  
+  if (status !== 'ACTIVE' || recentContributions.length === 0) return null;
+  
   return (
-    <div className="animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
-      <h3 className="font-display font-semibold text-lg mb-3">Recent Activity</h3>
+    <div className="px-4 pb-4 animate-fade-in-up" style={{ animationDelay: '0.15s' }}>
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <Activity className="w-4 h-4 text-[var(--muted)]" />
+          <h3 className="text-sm font-bold text-[var(--muted)]">Round #{roundNumber} Activity</h3>
+        </div>
+        <span className="text-xs text-[var(--muted)]">
+          {contributions.length} contribution{contributions.length !== 1 ? 's' : ''}
+        </span>
+      </div>
       
-      <div className="space-y-3">
-        {/* Last Contributor */}
-        <div className="glass rounded-xl p-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[var(--accent-soft)] flex items-center justify-center">
-              <User className="w-5 h-5 text-[var(--accent)]" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-xs text-[var(--muted)]">Last Contribution</p>
-              <p className="font-mono text-sm truncate">{formatAddress(lastContributor)}</p>
+      <div className="space-y-1">
+        {recentContributions.map((contrib) => (
+          <div 
+            key={contrib.id}
+            className="flex items-center justify-between py-3 px-3 rounded-xl hover:bg-[var(--accent-light)] transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-full bg-[var(--bg)] flex items-center justify-center">
+                <ArrowUpRight className="w-4 h-4 text-[var(--success)]" />
+              </div>
+              <div>
+                <p className="font-mono text-sm font-medium">{contrib.address}</p>
+                <p className="text-xs text-[var(--muted)]">{formatTimeAgo(contrib.timestamp)}</p>
+              </div>
             </div>
             <div className="text-right">
-              <p className="font-mono font-semibold">{lastContributionAmount} 0G</p>
-              <p className="text-xs text-[var(--muted)]">just now</p>
+              <p className="font-bold text-sm">{formatOG(contrib.ogAmount)} 0G</p>
+              <p className="text-xs text-[var(--muted)]">{formatUSD(contrib.usdValueAtDeposit)}</p>
             </div>
           </div>
-        </div>
-
-        {/* Latest Winner */}
-        {latestWinner && (
-          <div className="glass rounded-xl p-4 border border-[var(--accent)]/30">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center">
-                <Trophy className="w-5 h-5 text-black" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-xs text-[var(--accent)]">Latest Winner!</p>
-                <p className="font-mono text-sm truncate">{formatAddress(latestWinner)}</p>
-              </div>
-              <div className="text-right">
-                <p className="font-mono font-semibold gradient-text">${parseFloat(latestWinAmount).toLocaleString()}</p>
-                <p className="text-xs text-[var(--muted)]">Milestone #{latestWinMilestone}</p>
-              </div>
-            </div>
-          </div>
-        )}
+        ))}
       </div>
     </div>
   );

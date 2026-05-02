@@ -1,99 +1,46 @@
-import { X, Trophy, ExternalLink } from 'lucide-react';
 import { useGameStore } from '../store/gameStore';
-import { useGame } from '../hooks/useGame';
+import { formatUSD, formatTimeAgo } from '../utils/format';
+import { Trophy } from 'lucide-react';
 
-export function WinnerHistory() {
-  const { showHistory, setShowHistory } = useGameStore();
-  const { winnerHistory } = useGame();
-
-  const formatAddress = (addr: string) => {
-    return `${addr.slice(0, 8)}...${addr.slice(-6)}`;
-  };
-
-  const formatDate = (timestamp: number) => {
-    return new Date(timestamp).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
-
-  if (!showHistory) return null;
-
+export default function WinnerHistory() {
+  const { winners } = useGameStore();
+  
+  if (winners.length === 0) return null;
+  
   return (
-    <div 
-      className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm"
-      onClick={() => setShowHistory(false)}
-    >
-      <div 
-        className="w-full max-w-lg bg-[var(--bg)] rounded-t-3xl max-h-[80vh] overflow-hidden animate-fade-in-up"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-[var(--border)]">
-          <div className="flex items-center gap-2">
-            <Trophy className="w-5 h-5 text-[var(--accent)]" />
-            <h3 className="font-display font-semibold text-lg">Winner History</h3>
-          </div>
-          <button
-            onClick={() => setShowHistory(false)}
-            className="p-2 rounded-xl hover:bg-white/5 transition-colors"
+    <div className="px-4 pb-6 animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
+      <div className="flex items-center gap-2 mb-3">
+        <Trophy className="w-5 h-5 text-[var(--gold)]" />
+        <h3 className="text-sm font-bold">Winner Hall of Fame</h3>
+      </div>
+      
+      <div className="space-y-2">
+        {winners.map((winner, index) => (
+          <div 
+            key={winner.id}
+            className="glass rounded-2xl p-4 hover:scale-[1.01] transition-transform"
           >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        {/* Winner List */}
-        <div className="p-4 overflow-y-auto max-h-[60vh]">
-          {winnerHistory.length === 0 ? (
-            <div className="text-center py-8 text-[var(--muted)]">
-              <Trophy className="w-12 h-12 mx-auto mb-3 opacity-30" />
-              <p>No winners yet</p>
-              <p className="text-sm">Be the first to hit the $1M target!</p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {winnerHistory.map((winner, index) => (
-                <div
-                  key={`${winner.address}-${winner.timestamp}`}
-                  className="glass rounded-xl p-4"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center">
-                      <span className="text-black font-bold text-sm">#{winner.milestone}</span>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-mono text-sm truncate">{formatAddress(winner.address)}</p>
-                      <p className="text-xs text-[var(--muted)]">{formatDate(winner.timestamp)}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-mono font-semibold gradient-text">
-                        ${parseFloat(winner.prize).toLocaleString()}
-                      </p>
-                      <a
-                        href="#"
-                        className="text-xs text-[var(--accent)] hover:underline flex items-center gap-1 justify-end"
-                      >
-                        View <ExternalLink className="w-3 h-3" />
-                      </a>
-                    </div>
-                  </div>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[var(--gold)]/20 to-[var(--gold)]/5 flex items-center justify-center">
+                  <Trophy className="w-5 h-5 text-[var(--gold)]" />
                 </div>
-              ))}
+                <div>
+                  <p className="font-mono text-sm font-semibold">{winner.address}</p>
+                  <p className="text-xs text-[var(--muted)]">
+                    {formatTimeAgo(winner.timestamp)}
+                  </p>
+                </div>
+              </div>
+              <div className="text-right">
+                <p className="font-bold text-[var(--success)]">{formatUSD(1000000)}</p>
+                <p className="text-xs text-[var(--muted)]">
+                  Milestone #{(winner.milestone / 1000000).toFixed(0)}
+                </p>
+              </div>
             </div>
-          )}
-        </div>
-
-        {/* Footer */}
-        <div className="p-4 border-t border-[var(--border)]">
-          <button
-            onClick={() => setShowHistory(false)}
-            className="w-full py-3 rounded-xl glass hover:bg-white/5 transition-colors"
-          >
-            Close
-          </button>
-        </div>
+          </div>
+        ))}
       </div>
     </div>
   );

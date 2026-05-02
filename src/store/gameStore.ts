@@ -1,214 +1,503 @@
 import { create } from 'zustand';
+import { safeNumber } from '../utils/format';
 
-export interface Winner {
-  address: string;
-  prize: string;
-  milestone: number;
-  timestamp: number;
-}
-
-export interface ChatMessage {
+interface Contribution {
   id: string;
-  role: 'user' | 'milly';
-  content: string;
-  timestamp: number;
+  address: string;
+  ogAmount: number;
+  usdValueAtDeposit: number;
+  timestamp: Date;
+  refunded: boolean;
 }
 
 export interface Round {
-  id: number;
-  status: 'active' | 'won' | 'failed';
-  potUsdValue: string;
-  potBalance: string;
+  id: string;
+  roundNumber: number;
+  potOGAmount: number;
+  potUSDValue: number;
+  target: number;
+  status: 'ACTIVE' | 'WON' | 'FAILED';
   winner: string | null;
-  winnerAmount: string;
-  lastContributor: string;
-  lastContributionAmount: string;
-  contributorCount: number;
-  createdAt: number;
-  endedAt: number | null;
-  userDeposits: string;
-  hasClaimedRefund: boolean;
+  winnerPayout: number;
+  contributions: Contribution[];
+  refundsProcessed: boolean;
+  createdAt: Date;
+  endedAt: Date | null;
 }
 
-export type MillyMood = 'calm' | 'close' | 'danger';
+interface AIEvent {
+  id: string;
+  type: 'market_pump' | 'volatility_spike' | 'whale_activity' | 'price_alert' | 'milestone_close';
+  message: string;
+  timestamp: Date;
+}
 
-export interface GameState {
-  address: string | null;
-  isConnecting: boolean;
-  chainId: number | null;
-  balance: string;
-  
-  rounds: Round[];
-  currentRoundId: number;
-  
-  totalBalance: string;
-  usdValue: string;
-  currentMilestone: number;
-  nextMilestoneTarget: string;
-  distanceToMilestone: string;
-  lastContributor: string;
-  lastContributionAmount: string;
-  latestWinner: string;
-  latestWinAmount: string;
-  latestWinMilestone: number;
-  winnerHistory: Winner[];
-  contributorCount: number;
-  
+interface GameState {
+  ogPrice: number;
+  priceChange: number;
+  priceHistory: { price: number; timestamp: number }[];
+  isPriceLoading: boolean;
+  lastPriceUpdate: number | null;
+  currentRound: Round;
+  roundHistory: Round[];
+  isConnected: boolean;
+  walletAddress: string | null;
+  walletType: 'metamask' | 'rabby' | null;
+  showWalletModal: boolean;
+  showAddMoneyModal: boolean;
+  addMoneyStep: 'input' | 'confirm' | 'processing' | 'success' | 'won' | 'failed';
   contributionAmount: string;
-  isSubmitting: boolean;
-  showHistory: boolean;
-  isDark: boolean;
   
-  // Milly state
-  millyMessages: ChatMessage[];
-  millyInput: string;
-  millyMood: MillyMood;
-  isMillyLoading: boolean;
-  millyCollapsed: boolean;
-  millyCompact: boolean;
-  millyHasUnread: boolean;
+  aiCommentary: string;
+  aiRiskLevel: 'LOW' | 'MEDIUM' | 'HIGH';
+  aiEvent: AIEvent | null;
   
-  setAddress: (address: string | null) => void;
-  setConnecting: (connecting: boolean) => void;
-  setChainId: (chainId: number | null) => void;
-  setBalance: (balance: string) => void;
-  setTotalBalance: (balance: string) => void;
-  setUsdValue: (value: string) => void;
-  setCurrentMilestone: (milestone: number) => void;
-  setNextMilestoneTarget: (target: string) => void;
-  setDistanceToMilestone: (distance: string) => void;
-  setLastContributor: (contributor: string) => void;
-  setLastContributionAmount: (amount: string) => void;
-  setLatestWinner: (winner: string) => void;
-  setLatestWinAmount: (amount: string) => void;
-  setLatestWinMilestone: (milestone: number) => void;
-  setWinnerHistory: (history: Winner[]) => void;
-  setContributorCount: (count: number) => void;
+  updatePriceFromOracle: () => void;
+  updateAICommentary: () => void;
+  generateAIEvent: () => void;
+  connectWallet: (type: 'metamask' | 'rabby') => void;
+  disconnectWallet: () => void;
+  setShowWalletModal: (show: boolean) => void;
+  setShowAddMoneyModal: (show: boolean) => void;
+  setAddMoneyStep: (step: 'input' | 'confirm' | 'processing' | 'success' | 'won' | 'failed') => void;
   setContributionAmount: (amount: string) => void;
-  setSubmitting: (submitting: boolean) => void;
-  setShowHistory: (show: boolean) => void;
-  toggleTheme: () => void;
-  
-  addRound: (round: Round) => void;
-  updateRound: (roundId: number, updates: Partial<Round>) => void;
-  setCurrentRoundId: (id: number) => void;
-  claimRoundRefund: (roundId: number) => void;
-  addUserDeposit: (roundId: number, amount: string) => void;
-  
-  addMillyMessage: (message: Omit<ChatMessage, 'id' | 'timestamp'>) => void;
-  setMillyInput: (input: string) => void;
-  setMillyMood: (mood: MillyMood) => void;
-  setMillyLoading: (loading: boolean) => void;
-  setMillyCollapsed: (collapsed: boolean) => void;
-  setMillyCompact: (compact: boolean) => void;
-  setMillyHasUnread: (hasUnread: boolean) => void;
-  clearMillyMessages: () => void;
+  addContribution: (ogAmount: number) => void;
+  claimRefund: (roundId: string) => void;
+  startNewRound: () => void;
+  resetModals: () => void;
 }
 
-const generateId = () => Math.random().toString(36).substring(2, 15);
+const TARGET = 1000000;
+
+const createNewRound = (roundNumber: number): Round => ({
+  id: `round-${Date.now()}`,
+  roundNumber: safeNumber(roundNumber, 1),
+  potOGAmount: 0,
+  potUSDValue: 0,
+  target: TARGET,
+  status: 'ACTIVE',
+  winner: null,
+  winnerPayout: 0,
+  contributions: [],
+  refundsProcessed: false,
+  createdAt: new Date(),
+  endedAt: null,
+});
+
+const initialRoundHistory: Round[] = [
+  {
+    id: 'round-history-1',
+    roundNumber: 3,
+    potOGAmount: 2500000,
+    potUSDValue: 1000000,
+    target: TARGET,
+    status: 'WON',
+    winner: '0x1a2b...9f8e',
+    winnerPayout: 1000000,
+    contributions: [],
+    refundsProcessed: false,
+    createdAt: new Date(Date.now() - 86400000 * 2),
+    endedAt: new Date(Date.now() - 86400000 * 2),
+  },
+  {
+    id: 'round-history-2',
+    roundNumber: 2,
+    potOGAmount: 2200000,
+    potUSDValue: 1000050,
+    target: TARGET,
+    status: 'FAILED',
+    winner: null,
+    winnerPayout: 0,
+    contributions: [
+      { id: 'c1', address: '0x3d4e...5f6a', ogAmount: 1000, usdValueAtDeposit: 450, timestamp: new Date(Date.now() - 86400000 * 3), refunded: true },
+      { id: 'c2', address: '0x7a8b...9c0d', ogAmount: 500, usdValueAtDeposit: 225, timestamp: new Date(Date.now() - 86400000 * 3), refunded: true },
+    ],
+    refundsProcessed: true,
+    createdAt: new Date(Date.now() - 86400000 * 5),
+    endedAt: new Date(Date.now() - 86400000 * 3),
+  },
+  {
+    id: 'round-history-3',
+    roundNumber: 1,
+    potOGAmount: 1800000,
+    potUSDValue: 1000000,
+    target: TARGET,
+    status: 'WON',
+    winner: '0x5e6f...1c2d',
+    winnerPayout: 1000000,
+    contributions: [],
+    refundsProcessed: false,
+    createdAt: new Date(Date.now() - 86400000 * 10),
+    endedAt: new Date(Date.now() - 86400000 * 7),
+  },
+];
+
+// Lady Milly's commentary
+const commentaryLow = [
+  "Relax… we're not even close yet.",
+  "This is still boring, darling.",
+  "Plenty of room… don't get excited.",
+  "Oh, the anticipation… or lack thereof.",
+  "Patience. The real game hasn't started.",
+  "I'm watching, but there's nothing to see yet.",
+];
+
+const commentaryMedium = [
+  "Now it's getting interesting…",
+  "Careful. This is where people lose control.",
+  "You're getting closer than you should.",
+  "The tension is building… can you feel it?",
+  "I'd start paying attention if I were you.",
+  "Things are about to get… complicated.",
+  "Don't get cocky. We're not there yet.",
+];
+
+const commentaryHigh = [
+  "Oh… this is dangerous.",
+  "One wrong move and it's over.",
+  "Don't ruin it now…",
+  "I wouldn't touch it if I were you.",
+  "This is where heroes become zeros.",
+  "So close… but so easy to destroy.",
+  "Hold your breath, darling.",
+  "The edge of glory… or disaster.",
+];
+
+const commentaryWon = [
+  "Perfect. Finally someone understood the game.",
+  "Now that was elegant.",
+  "Impressive… I didn't expect that.",
+  "Beautifully done. Someone has taste.",
+  "Exquisite timing. Well played.",
+];
+
+const commentaryFailed = [
+  "Well… that was predictable.",
+  "Too greedy. Always the same story.",
+  "Everyone has been refunded. Move along.",
+  "Disappointing… but not surprising.",
+  "And there it goes. Such a waste. Refunds sent.",
+  "I tried to warn you… sort of. Refunds processed.",
+];
+
+const eventMessages = {
+  market_pump: [
+    "Oh my… the market is waking up.",
+    "Someone's excited today…",
+    "Green candles everywhere. How delightful.",
+  ],
+  volatility_spike: [
+    "Things are getting… unstable.",
+    "Hold on tight, darling.",
+    "The oracle is feeling dramatic today.",
+  ],
+  whale_activity: [
+    "A whale has entered the chat…",
+    "Big money is making moves.",
+    "Someone's feeling generous today.",
+  ],
+  price_alert: [
+    "Price shift detected. Stay sharp.",
+    "The oracle whispers…",
+    "Change is coming, darling.",
+  ],
+  milestone_close: [
+    "We're approaching the moment of truth.",
+    "Almost there… how thrilling.",
+    "The end is near. One way or another.",
+  ],
+};
+
+function pickRandom<T>(arr: T[]): T {
+  return arr[Math.floor(Math.random() * arr.length)];
+}
+
+const fetchOraclePrice = async (): Promise<{ price: number; change: number }> => {
+  await new Promise(resolve => setTimeout(resolve, 100));
+  
+  const basePrice = 0.45;
+  const volatility = (Math.random() - 0.5) * 0.02;
+  const newPrice = Math.max(0.01, basePrice + volatility);
+  const change = volatility / basePrice * 100;
+  
+  return { price: newPrice, change };
+};
 
 export const useGameStore = create<GameState>((set, get) => ({
-  address: null,
-  isConnecting: false,
-  chainId: null,
-  balance: '0',
-  
-  rounds: [],
-  currentRoundId: 1,
-  
-  totalBalance: '0',
-  usdValue: '0',
-  currentMilestone: 1,
-  nextMilestoneTarget: '1000000',
-  distanceToMilestone: '1000000',
-  lastContributor: '',
-  lastContributionAmount: '0',
-  latestWinner: '',
-  latestWinAmount: '0',
-  latestWinMilestone: 0,
-  winnerHistory: [],
-  contributorCount: 0,
-  
+  ogPrice: 0.45,
+  priceChange: 0,
+  priceHistory: [],
+  isPriceLoading: true,
+  lastPriceUpdate: null,
+  currentRound: createNewRound(4),
+  roundHistory: initialRoundHistory,
+  isConnected: false,
+  walletAddress: null,
+  walletType: null,
+  showWalletModal: false,
+  showAddMoneyModal: false,
+  addMoneyStep: 'input',
   contributionAmount: '',
-  isSubmitting: false,
-  showHistory: false,
-  isDark: true,
   
-  millyMessages: [],
-  millyInput: '',
-  millyMood: 'calm',
-  isMillyLoading: false,
-  millyCollapsed: false,
-  millyCompact: false,
-  millyHasUnread: false,
-  
-  setAddress: (address) => set({ address }),
-  setConnecting: (isConnecting) => set({ isConnecting }),
-  setChainId: (chainId) => set({ chainId }),
-  setBalance: (balance) => set({ balance }),
-  setTotalBalance: (totalBalance) => set({ totalBalance }),
-  setUsdValue: (usdValue) => set({ usdValue }),
-  setCurrentMilestone: (currentMilestone) => set({ currentMilestone }),
-  setNextMilestoneTarget: (nextMilestoneTarget) => set({ nextMilestoneTarget }),
-  setDistanceToMilestone: (distanceToMilestone) => set({ distanceToMilestone }),
-  setLastContributor: (lastContributor) => set({ lastContributor }),
-  setLastContributionAmount: (lastContributionAmount) => set({ lastContributionAmount }),
-  setLatestWinner: (latestWinner) => set({ latestWinner }),
-  setLatestWinAmount: (latestWinAmount) => set({ latestWinAmount }),
-  setLatestWinMilestone: (latestWinMilestone) => set({ latestWinMilestone }),
-  setWinnerHistory: (winnerHistory) => set({ winnerHistory }),
-  setContributorCount: (contributorCount) => set({ contributorCount }),
-  setContributionAmount: (contributionAmount) => set({ contributionAmount }),
-  setSubmitting: (isSubmitting) => set({ isSubmitting }),
-  setShowHistory: (showHistory) => set({ showHistory }),
-  toggleTheme: () => {
-    const newDark = !get().isDark;
-    document.documentElement.setAttribute('data-theme', newDark ? 'dark' : 'light');
-    set({ isDark: newDark });
+  aiCommentary: "Welcome, darling. Let's see what you've got.",
+  aiRiskLevel: 'LOW',
+  aiEvent: null,
+
+  updateAICommentary: () => {
+    const state = get();
+    const { potUSDValue, target, status } = state.currentRound;
+    const distance = target - potUSDValue;
+    
+    let commentary: string;
+    let riskLevel: 'LOW' | 'MEDIUM' | 'HIGH';
+    
+    if (status === 'WON') {
+      commentary = pickRandom(commentaryWon);
+      riskLevel = 'LOW';
+    } else if (status === 'FAILED') {
+      commentary = pickRandom(commentaryFailed);
+      riskLevel = 'LOW';
+    } else if (distance < 10000) {
+      commentary = pickRandom(commentaryHigh);
+      riskLevel = 'HIGH';
+    } else if (distance < 50000) {
+      commentary = pickRandom(commentaryMedium);
+      riskLevel = 'MEDIUM';
+    } else {
+      commentary = pickRandom(commentaryLow);
+      riskLevel = 'LOW';
+    }
+    
+    set({ aiCommentary: commentary, aiRiskLevel: riskLevel });
   },
+
+  generateAIEvent: () => {
+    const state = get();
+    const { potUSDValue, target, status } = state.currentRound;
+    const { priceChange } = state;
+    const distance = target - potUSDValue;
+    
+    if (status !== 'ACTIVE') return;
+    
+    let eventType: keyof typeof eventMessages | null = null;
+    
+    if (Math.abs(priceChange) > 1.5) {
+      eventType = priceChange > 0 ? 'market_pump' : 'volatility_spike';
+    }
+    
+    if (distance < 10000 && Math.random() < 0.3) {
+      eventType = 'milestone_close';
+    }
+    
+    if (Math.random() < 0.1) {
+      eventType = 'whale_activity';
+    }
+    
+    if (Math.random() < 0.15) {
+      eventType = 'price_alert';
+    }
+    
+    if (eventType) {
+      const event: AIEvent = {
+        id: `event-${Date.now()}`,
+        type: eventType,
+        message: pickRandom(eventMessages[eventType]),
+        timestamp: new Date(),
+      };
+      
+      set({ aiEvent: event });
+      
+      setTimeout(() => set({ aiEvent: null }), 3000);
+    }
+  },
+
+  updatePriceFromOracle: async () => {
+    try {
+      const { price, change } = await fetchOraclePrice();
+      const state = get();
+      const safeOGAmount = safeNumber(state.currentRound.potOGAmount, 0);
+      const newUSDValue = safeOGAmount * price;
+      
+      const newPriceHistory = [
+        { price, timestamp: Date.now() },
+        ...state.priceHistory.slice(0, 59),
+      ];
+      
+      set({
+        ogPrice: price,
+        priceChange: change,
+        priceHistory: newPriceHistory,
+        isPriceLoading: false,
+        lastPriceUpdate: Date.now(),
+        currentRound: {
+          ...state.currentRound,
+          potUSDValue: newUSDValue,
+        },
+      });
+      
+      get().updateAICommentary();
+      get().generateAIEvent();
+      
+    } catch (error) {
+      console.error('Oracle price update failed:', error);
+      set({ isPriceLoading: false });
+    }
+  },
+
+  connectWallet: (type) => {
+    const mockAddress = '0x' + Array.from({ length: 40 }, () => 
+      Math.floor(Math.random() * 16).toString(16)
+    ).join('');
+    
+    const shortAddress = mockAddress.slice(0, 6) + '...' + mockAddress.slice(-4);
+    
+    set({
+      isConnected: true,
+      walletAddress: shortAddress,
+      walletType: type,
+      showWalletModal: false,
+    });
+  },
+
+  disconnectWallet: () => set({
+    isConnected: false,
+    walletAddress: null,
+    walletType: null,
+  }),
+
+  setShowWalletModal: (show) => set({ showWalletModal: show }),
   
-  addRound: (round) => set((state) => ({
-    rounds: [...state.rounds, round]
-  })),
+  setShowAddMoneyModal: (show) => set({ 
+    showAddMoneyModal: show, 
+    addMoneyStep: 'input',
+    contributionAmount: '',
+  }),
   
-  updateRound: (roundId, updates) => set((state) => ({
-    rounds: state.rounds.map(r => 
-      r.id === roundId ? { ...r, ...updates } : r
-    )
-  })),
+  setAddMoneyStep: (step) => set({ addMoneyStep: step }),
   
-  setCurrentRoundId: (currentRoundId) => set({ currentRoundId }),
-  
-  claimRoundRefund: (roundId) => set((state) => ({
-    rounds: state.rounds.map(r => 
-      r.id === roundId ? { ...r, hasClaimedRefund: true } : r
-    )
-  })),
-  
-  addUserDeposit: (roundId, amount) => set((state) => ({
-    rounds: state.rounds.map(r => {
-      if (r.id === roundId) {
-        const currentDeposits = parseFloat(r.userDeposits);
-        const newAmount = parseFloat(amount);
-        return { ...r, userDeposits: (currentDeposits + newAmount).toString() };
+  setContributionAmount: (amount) => set({ contributionAmount: amount }),
+
+  resetModals: () => set({
+    showAddMoneyModal: false,
+    addMoneyStep: 'input',
+    contributionAmount: '',
+  }),
+
+  startNewRound: () => {
+    const state = get();
+    const newRoundNumber = safeNumber(state.currentRound.roundNumber, 0) + 1;
+    set({
+      currentRound: createNewRound(newRoundNumber),
+    });
+    get().updateAICommentary();
+  },
+
+  addContribution: (ogAmount: number) => {
+    const state = get();
+    const currentRound = state.currentRound;
+    const { ogPrice } = state;
+    
+    if (currentRound.status !== 'ACTIVE') return;
+    
+    const safeOGAmount = safeNumber(ogAmount, 0);
+    
+    set({ addMoneyStep: 'processing' });
+    
+    setTimeout(() => {
+      const usdValueAtDeposit = safeOGAmount * safeNumber(ogPrice, 0.45);
+      const currentPotOG = safeNumber(currentRound.potOGAmount, 0);
+      
+      const newOGAmount = currentPotOG + safeOGAmount;
+      const newUSDValue = newOGAmount * safeNumber(ogPrice, 0.45);
+      
+      const contribution: Contribution = {
+        id: `contrib-${Date.now()}`,
+        address: state.walletAddress || 'Unknown',
+        ogAmount: safeOGAmount,
+        usdValueAtDeposit: usdValueAtDeposit,
+        timestamp: new Date(),
+        refunded: false,
+      };
+      
+      const isExactHit = Math.abs(newUSDValue - TARGET) < 0.01;
+      const isOverflow = newUSDValue > TARGET && !isExactHit;
+      
+      if (isExactHit) {
+        const endedRound: Round = {
+          ...currentRound,
+          potOGAmount: newOGAmount,
+          potUSDValue: TARGET,
+          status: 'WON',
+          winner: state.walletAddress || 'Unknown',
+          winnerPayout: 1000000,
+          contributions: [...currentRound.contributions, contribution],
+          refundsProcessed: false,
+          endedAt: new Date(),
+        };
+        
+        set({
+          currentRound: createNewRound(safeNumber(currentRound.roundNumber, 0) + 1),
+          roundHistory: [endedRound, ...state.roundHistory],
+          addMoneyStep: 'won',
+          contributionAmount: '',
+        });
+      } else if (isOverflow) {
+        // Auto-refund everyone when round fails
+        const refundedContributions = [...currentRound.contributions, contribution].map(c => ({
+          ...c,
+          refunded: true,
+        }));
+        
+        const endedRound: Round = {
+          ...currentRound,
+          potOGAmount: newOGAmount,
+          potUSDValue: newUSDValue,
+          status: 'FAILED',
+          winner: null,
+          winnerPayout: 0,
+          contributions: refundedContributions,
+          refundsProcessed: true,
+          endedAt: new Date(),
+        };
+        
+        set({
+          currentRound: createNewRound(safeNumber(currentRound.roundNumber, 0) + 1),
+          roundHistory: [endedRound, ...state.roundHistory],
+          addMoneyStep: 'failed',
+          contributionAmount: '',
+        });
+      } else {
+        set({
+          currentRound: {
+            ...currentRound,
+            potOGAmount: newOGAmount,
+            potUSDValue: newUSDValue,
+            contributions: [...currentRound.contributions, contribution],
+          },
+          addMoneyStep: 'success',
+          contributionAmount: '',
+        });
       }
-      return r;
-    })
-  })),
-  
-  addMillyMessage: (message) => set((state) => ({
-    millyMessages: [...state.millyMessages, {
-      ...message,
-      id: generateId(),
-      timestamp: Date.now()
-    }],
-    millyHasUnread: state.millyCollapsed ? true : state.millyHasUnread
-  })),
-  setMillyInput: (millyInput) => set({ millyInput }),
-  setMillyMood: (millyMood) => set({ millyMood }),
-  setMillyLoading: (isMillyLoading) => set({ isMillyLoading }),
-  setMillyCollapsed: (millyCollapsed) => set({ millyCollapsed, millyHasUnread: millyCollapsed ? get().millyHasUnread : false }),
-  setMillyCompact: (millyCompact) => set({ millyCompact }),
-  setMillyHasUnread: (millyHasUnread) => set({ millyHasUnread }),
-  clearMillyMessages: () => set({ millyMessages: [] })
+      
+      get().updateAICommentary();
+    }, 2000);
+  },
+
+  claimRefund: (roundId: string) => {
+    // Auto-refund is now handled when round fails
+    // This function remains for any manual refund scenarios
+    const state = get();
+    const round = state.roundHistory.find(r => r.id === roundId);
+    
+    if (!round || round.status !== 'FAILED') return;
+    if (round.refundsProcessed) return;
+    
+    const updatedContributions = round.contributions.map(c => ({ ...c, refunded: true }));
+    
+    set({
+      roundHistory: state.roundHistory.map(r => 
+        r.id === roundId ? { ...r, contributions: updatedContributions, refundsProcessed: true } : r
+      ),
+    });
+  },
 }));

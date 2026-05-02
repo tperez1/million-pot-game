@@ -143,3 +143,128 @@ Important:
 This is a frontend prototype only.
 Use mock data and local state.
 Do not rebuild the app from scratch.
+
+---
+
+## 4. Round System
+
+Added support for multiple rounds running in parallel.
+
+Enhance the existing Million Pot Game frontend to support multiple rounds.
+
+Do not rebuild the app. Only extend the current logic and UI.
+
+GAME LOGIC:
+
+- When a round fails (pot exceeds $1,000,000):
+  - Mark the current round as FAILED
+  - Allow players to claim refunds from this round
+  - Immediately start a new round
+
+- Each round must have its own state:
+  - roundId
+  - pot value
+  - status (Active, Won, Failed)
+  - user deposits
+
+- Refunds belong only to the round where the user deposited
+
+NEW UI REQUIREMENT:
+
+Add a “Round System” to the interface.
+
+Top section:
+- Show current active round:
+  - “Round #2”
+  - Pot value
+  - Target: $1,000,000
+
+Below that, add a section called:
+
+“Previous Rounds”
+
+Each previous round card should show:
+- Round number
+- Status (Won / Failed)
+- Button: “Claim Refund” (only if Failed)
+- Button: “View Details”
+
+USER FLOW:
+
+- Users can deposit only in the active round
+- If a round fails:
+  - The UI switches automatically to the new round
+- Users can still scroll down and claim refunds from old rounds
+
+IMPORTANT:
+
+- Do not mix funds between rounds
+- Each round must be independent
+- Refund button should only affect that specific round
+- Hide “Add Crypto” button for failed rounds
+
+UI STYLE:
+
+- Mobile-first
+- Clean card layout
+- Clear separation between current round and previous rounds
+
+For now:
+- Use mock data
+- Simulate round transitions
+- Do not connect to blockchain yet
+
+GOAL:
+
+Create a smooth user experience where:
+- The game never stops
+- New rounds start instantly
+- Players can safely claim refunds from previous rounds
+
+---
+
+## 5. Improve Milly chat UI
+
+
+Do not rebuild the app. Only improve Milly’s layout and usability.
+
+Problem:
+When users send many messages, the Milly chat takes too much screen space and covers the mobile interface.
+
+Add these features:
+
+1. Collapsible Milly Card
+- Add a minimize/collapse button
+- When collapsed, show only a small Milly header bar with:
+  - Milly name
+  - current mood
+  - unread/new message indicator if needed
+- User can expand it again
+
+2. Fixed Chat Height
+- Limit the chat messages area to a maximum height
+- Make messages scroll inside the chat area
+- The page should not become too long because of messages
+
+3. Compact Mode
+- Add a small “Compact” button
+- Compact mode shows:
+  - latest Milly message only
+  - chat input hidden
+  - suggested buttons hidden
+- User can return to full chat mode
+
+4. Clear Chat Button
+- Add a “Clear chat” button
+- It removes old messages from the screen
+
+Mobile UX:
+- Milly must never take over the full screen
+- Keep the main game pot visible
+- Keep the design clean and mobile-first
+- Use smooth expand/collapse behavior if possible
+
+Important:
+Do not change the game rules.
+Do not change the round logic.
+Only improve the Milly chat UI and state behavior.

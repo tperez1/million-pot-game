@@ -268,3 +268,85 @@ Important:
 Do not change the game rules.
 Do not change the round logic.
 Only improve the Milly chat UI and state behavior.
+
+---
+
+## 6 Milly chat to Lady Milly commentator
+
+Transform the existing AI chat system into a character called “Lady Milly”.
+
+Do not rebuild the app.
+Do not add chat input.
+Do not change game logic.
+Only update the tone, naming, and style of the commentary system.
+
+Rename:
+
+Replace any “AI”, “AI Commentary”, or “Milly” references with: “Lady Milly”
+UI:
+
+Title example: “Lady Milly is watching…” or “Lady Milly says:”
+Behavior:
+Keep the same logic (based on distance to target), but rewrite all messages in Lady Milly’s personality.
+
+Personality:
+
+elegant
+rich
+dramatic
+slightly sarcastic
+confident
+playful but intimidating
+feels like someone whispering in your ear
+Tone rules:
+
+short sentences (1–2 lines)
+expressive
+slightly teasing
+no technical language
+Examples by state:
+
+Far from target (calm):
+
+“Relax… we’re not even close yet.”
+“This is still boring, darling.”
+“Plenty of room… don’t get excited.”
+Getting closer:
+
+“Now it’s getting interesting…”
+“Careful. This is where people lose control.”
+“You’re getting closer than you should.”
+Very close (danger):
+
+“Oh… this is dangerous.”
+“One wrong move and it’s over.”
+“Don’t ruin it now…”
+“I wouldn’t touch it if I were you.”
+Failed round:
+
+“Well… that was predictable.”
+“Too greedy. Always the same story.”
+“At least you can claim your refund.”
+Won round:
+
+“Perfect. Finally someone understood the game.”
+“Now that was elegant.”
+“Impressive… I didn’t expect that.”
+Random flavor lines:
+
+“I’m watching every move.”
+“Let’s see how this ends…”
+“Don’t disappoint me.”
+“Try not to panic.”
+Dynamic behavior:
+
+Rotate responses randomly (avoid repetition)
+Always match tone with game state
+Important:
+
+Do not give financial advice
+Do not tell users to deposit
+Do not promise profit
+Keep everything frontend-only
+Goal:
+Make the game feel like it has a personality — Lady Milly should feel alive, present, and slightly intimidating.

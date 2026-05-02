@@ -20,7 +20,6 @@ export interface Round {
   winner: string | null;
   winnerPayout: number;
   contributions: Contribution[];
-  refundsProcessed: boolean;
   createdAt: Date;
   endedAt: Date | null;
 }
@@ -79,7 +78,6 @@ const createNewRound = (roundNumber: number): Round => ({
   winner: null,
   winnerPayout: 0,
   contributions: [],
-  refundsProcessed: false,
   createdAt: new Date(),
   endedAt: null,
 });
@@ -95,7 +93,6 @@ const initialRoundHistory: Round[] = [
     winner: '0x1a2b...9f8e',
     winnerPayout: 1000000,
     contributions: [],
-    refundsProcessed: false,
     createdAt: new Date(Date.now() - 86400000 * 2),
     endedAt: new Date(Date.now() - 86400000 * 2),
   },
@@ -109,10 +106,9 @@ const initialRoundHistory: Round[] = [
     winner: null,
     winnerPayout: 0,
     contributions: [
-      { id: 'c1', address: '0x3d4e...5f6a', ogAmount: 1000, usdValueAtDeposit: 450, timestamp: new Date(Date.now() - 86400000 * 3), refunded: true },
+      { id: 'c1', address: '0x3d4e...5f6a', ogAmount: 1000, usdValueAtDeposit: 450, timestamp: new Date(Date.now() - 86400000 * 3), refunded: false },
       { id: 'c2', address: '0x7a8b...9c0d', ogAmount: 500, usdValueAtDeposit: 225, timestamp: new Date(Date.now() - 86400000 * 3), refunded: true },
     ],
-    refundsProcessed: true,
     createdAt: new Date(Date.now() - 86400000 * 5),
     endedAt: new Date(Date.now() - 86400000 * 3),
   },
@@ -126,7 +122,6 @@ const initialRoundHistory: Round[] = [
     winner: '0x5e6f...1c2d',
     winnerPayout: 1000000,
     contributions: [],
-    refundsProcessed: false,
     createdAt: new Date(Date.now() - 86400000 * 10),
     endedAt: new Date(Date.now() - 86400000 * 7),
   },
@@ -174,10 +169,10 @@ const commentaryWon = [
 const commentaryFailed = [
   "Well… that was predictable.",
   "Too greedy. Always the same story.",
-  "Everyone has been refunded. Move along.",
+  "Claim your refund and try again.",
   "Disappointing… but not surprising.",
-  "And there it goes. Such a waste. Refunds sent.",
-  "I tried to warn you… sort of. Refunds processed.",
+  "And there it goes. Such a waste.",
+  "I tried to warn you… sort of. Refunds available.",
 ];
 
 const eventMessages = {
@@ -431,7 +426,6 @@ export const useGameStore = create<GameState>((set, get) => ({
           winner: state.walletAddress || 'Unknown',
           winnerPayout: 1000000,
           contributions: [...currentRound.contributions, contribution],
-          refundsProcessed: false,
           endedAt: new Date(),
         };
         
@@ -442,12 +436,7 @@ export const useGameStore = create<GameState>((set, get) => ({
           contributionAmount: '',
         });
       } else if (isOverflow) {
-        // Auto-refund everyone when round fails
-        const refundedContributions = [...currentRound.contributions, contribution].map(c => ({
-          ...c,
-          refunded: true,
-        }));
-        
+        // Do NOT auto-refund - players must claim manually
         const endedRound: Round = {
           ...currentRound,
           potOGAmount: newOGAmount,
@@ -455,8 +444,7 @@ export const useGameStore = create<GameState>((set, get) => ({
           status: 'FAILED',
           winner: null,
           winnerPayout: 0,
-          contributions: refundedContributions,
-          refundsProcessed: true,
+          contributions: [...currentRound.contributions, contribution],
           endedAt: new Date(),
         };
         
@@ -484,19 +472,19 @@ export const useGameStore = create<GameState>((set, get) => ({
   },
 
   claimRefund: (roundId: string) => {
-    // Auto-refund is now handled when round fails
-    // This function remains for any manual refund scenarios
     const state = get();
     const round = state.roundHistory.find(r => r.id === roundId);
     
     if (!round || round.status !== 'FAILED') return;
-    if (round.refundsProcessed) return;
+    if (!state.walletAddress) return;
     
-    const updatedContributions = round.contributions.map(c => ({ ...c, refunded: true }));
+    const updatedContributions = round.contributions.map(c => 
+      c.address === state.walletAddress ? { ...c, refunded: true } : c
+    );
     
     set({
       roundHistory: state.roundHistory.map(r => 
-        r.id === roundId ? { ...r, contributions: updatedContributions, refundsProcessed: true } : r
+        r.id === roundId ? { ...r, contributions: updatedContributions } : r
       ),
     });
   },

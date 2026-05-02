@@ -1,16 +1,30 @@
 import { useGameStore, Round } from '../store/gameStore';
 import { formatUSD, formatOG, formatTimeAgo, safeNumber } from '../utils/format';
-import { Trophy, AlertTriangle, Clock, CheckCircle } from 'lucide-react';
+import { Trophy, AlertTriangle, Clock, RotateCcw, CheckCircle } from 'lucide-react';
 import { useState } from 'react';
 
 export default function RoundHistory() {
-  const { roundHistory } = useGameStore();
+  const { roundHistory, walletAddress, claimRefund } = useGameStore();
   const [expandedRound, setExpandedRound] = useState<string | null>(null);
   
   if (roundHistory.length === 0) return null;
   
+  const getUserContribution = (round: Round) => {
+    if (!walletAddress) return null;
+    return round.contributions.find(c => c.address === walletAddress);
+  };
+  
+  const hasUserContributed = (round: Round) => {
+    if (!walletAddress) return false;
+    return round.contributions.some(c => c.address === walletAddress);
+  };
+  
   const toggleExpand = (roundId: string) => {
     setExpandedRound(expandedRound === roundId ? null : roundId);
+  };
+  
+  const handleClaimRefund = (roundId: string) => {
+    claimRefund(roundId);
   };
   
   return (
@@ -23,12 +37,16 @@ export default function RoundHistory() {
       <div className="space-y-2">
         {roundHistory.map((round) => {
           const isExpanded = expandedRound === round.id;
+          const userContribution = getUserContribution(round);
+          const canClaimRefund = round.status === 'FAILED' && userContribution && !userContribution.refunded;
+          const hasRefunded = userContribution?.refunded;
+          
+          // Safe number handling
           const safePotUSD = safeNumber(round.potUSDValue, 0);
           const safePotOG = safeNumber(round.potOGAmount, 0);
           const safeTarget = safeNumber(round.target, 1000000);
           const safeRoundNumber = safeNumber(round.roundNumber, 0);
           const overflowAmount = safePotUSD - safeTarget;
-          const totalRefunded = round.contributions.reduce((sum, c) => sum + safeNumber(c.ogAmount, 0), 0);
           
           return (
             <div 
@@ -85,27 +103,12 @@ export default function RoundHistory() {
                 <div className="px-4 pb-4 animate-fade-in-up">
                   <div className="pt-3 border-t border-[var(--border)]">
                     {round.status === 'FAILED' && (
-                      <>
-                        <div className="mb-3">
-                          <p className="text-xs text-[var(--muted)] mb-1">Overflow Amount</p>
-                          <p className="font-bold text-[var(--error)]">
-                            {formatUSD(Math.max(0, overflowAmount))} over target
-                          </p>
-                        </div>
-                        
-                        {/* Auto-refund status */}
-                        <div className="p-3 rounded-xl bg-[var(--success)]/10 border border-[var(--success)]/20">
-                          <div className="flex items-center gap-2 mb-1">
-                            <CheckCircle className="w-4 h-4 text-[var(--success)]" />
-                            <span className="font-semibold text-[var(--success)] text-sm">
-                              All Players Refunded
-                            </span>
-                          </div>
-                          <p className="text-xs text-[var(--muted)]">
-                            {formatOG(totalRefunded)} 0G returned to {round.contributions.length} player{round.contributions.length !== 1 ? 's' : ''}
-                          </p>
-                        </div>
-                      </>
+                      <div className="mb-3">
+                        <p className="text-xs text-[var(--muted)] mb-1">Overflow Amount</p>
+                        <p className="font-bold text-[var(--error)]">
+                          {formatUSD(Math.max(0, overflowAmount))} over target
+                        </p>
+                      </div>
                     )}
                     
                     {round.status === 'WON' && (
@@ -118,23 +121,37 @@ export default function RoundHistory() {
                       </div>
                     )}
                     
-                    {round.contributions.length > 0 && (
-                      <div className="mt-3">
-                        <p className="text-xs text-[var(--muted)] mb-2">Contributions</p>
-                        <div className="space-y-1.5">
-                          {round.contributions.map((contrib) => (
-                            <div key={contrib.id} className="flex items-center justify-between text-xs py-1.5 px-2 rounded-lg bg-[var(--bg)]">
-                              <span className="font-mono">{contrib.address}</span>
-                              <div className="flex items-center gap-2">
-                                <span className="font-semibold">{formatOG(safeNumber(contrib.ogAmount, 0))} 0G</span>
-                                {contrib.refunded && (
-                                  <span className="text-[var(--success)]">✓</span>
-                                )}
-                              </div>
-                            </div>
-                          ))}
+                    {canClaimRefund && (
+                      <button
+                        onClick={() => handleClaimRefund(round.id)}
+                        className="w-full mt-3 py-3 rounded-xl font-semibold bg-[var(--warning)] text-white hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+                      >
+                        <RotateCcw className="w-4 h-4" />
+                        Claim Refund ({formatOG(safeNumber(userContribution?.ogAmount, 0))} 0G)
+                      </button>
+                    )}
+                    
+                    {hasRefunded && (
+                      <div className="mt-3 p-3 rounded-xl bg-[var(--success)]/10 text-center">
+                        <div className="flex items-center justify-center gap-2">
+                          <CheckCircle className="w-4 h-4 text-[var(--success)]" />
+                          <p className="text-sm font-semibold text-[var(--success)]">
+                            Refund Claimed ({formatOG(safeNumber(userContribution?.ogAmount, 0))} 0G)
+                          </p>
                         </div>
                       </div>
+                    )}
+                    
+                    {round.status === 'FAILED' && !hasUserContributed(round) && walletAddress && (
+                      <p className="text-xs text-[var(--muted)] mt-3 text-center">
+                        You did not participate in this round
+                      </p>
+                    )}
+                    
+                    {!walletAddress && round.status === 'FAILED' && (
+                      <p className="text-xs text-[var(--muted)] mt-3 text-center">
+                        Connect wallet to claim refund
+                      </p>
                     )}
                   </div>
                 </div>

@@ -27,7 +27,6 @@ export default function AddMoneyModal() {
   const newUSDValue = potUSDValue + usdValue;
   const newOGAmount = potOGAmount + ogAmount;
   const isExactHit = Math.abs(newUSDValue - target) < 0.01;
-  const isOverflow = newUSDValue > target && !isExactHit;
   const isPositiveChange = priceChange >= 0;
   
   const ogFor1Dollar = 1 / ogPrice;
@@ -180,9 +179,7 @@ export default function AddMoneyModal() {
               <div className={`p-4 rounded-2xl mb-5 ${
                 isExactHit 
                   ? 'bg-[var(--success)]/10 border-2 border-[var(--success)]' 
-                  : isOverflow 
-                    ? 'bg-[var(--error)]/10 border-2 border-[var(--error)]' 
-                    : 'bg-[var(--bg)] border border-[var(--border)]'
+                  : 'bg-[var(--bg)] border border-[var(--border)]'
               }`}>
                 {isExactHit ? (
                   <div className="flex items-center gap-3">
@@ -193,16 +190,6 @@ export default function AddMoneyModal() {
                       <p className="font-bold text-[var(--success)]">Perfect Hit!</p>
                       <p className="text-sm text-[var(--muted)]">
                         You'll win $1,000,000!
-                      </p>
-                    </div>
-                  </div>
-                ) : isOverflow ? (
-                  <div className="flex items-center gap-3">
-                    <AlertTriangle className="w-5 h-5 text-[var(--error)]" />
-                    <div>
-                      <p className="font-semibold text-[var(--error)]">Will FAIL the round</p>
-                      <p className="text-sm text-[var(--muted)]">
-                        Overflow: {formatUSD(newUSDValue - target)}. Everyone gets refunded.
                       </p>
                     </div>
                   </div>
@@ -273,13 +260,6 @@ export default function AddMoneyModal() {
                   <span className="font-semibold text-[var(--success)]">You could win $1,000,000!</span>
                 </div>
               )}
-              
-              {isOverflow && (
-                <div className="inline-flex items-center gap-2 px-4 py-2 bg-[var(--error)]/10 rounded-full mt-4">
-                  <AlertTriangle className="w-5 h-5 text-[var(--error)]" />
-                  <span className="font-semibold text-[var(--error)]">Round will fail — everyone refunded</span>
-                </div>
-              )}
             </div>
             
             <div className="space-y-3 mb-6 text-sm bg-[var(--bg)] rounded-2xl p-4">
@@ -298,17 +278,13 @@ export default function AddMoneyModal() {
               <div className="h-px bg-[var(--border)]" />
               <div className="flex justify-between">
                 <span className="font-semibold">New pot value</span>
-                <span className={`font-bold text-lg ${isOverflow ? 'text-[var(--error)]' : ''}`}>
-                  {formatUSD(newUSDValue)}
-                </span>
+                <span className="font-bold text-lg">{formatUSD(newUSDValue)}</span>
               </div>
             </div>
             
             <button
               onClick={handleConfirm}
-              className={`w-full py-4 rounded-2xl font-bold text-lg hover:scale-[1.02] active:scale-[0.98] transition-all text-white ${
-                isOverflow ? 'bg-[var(--error)]' : 'bg-[var(--accent)]'
-              }`}
+              className="w-full py-4 rounded-2xl font-bold text-lg hover:scale-[1.02] active:scale-[0.98] transition-all text-white bg-[var(--accent)]"
             >
               Deposit {formatOG(ogAmount)} 0G
             </button>
@@ -381,14 +357,9 @@ export default function AddMoneyModal() {
             <p className="text-[var(--muted)] mb-2">
               The pot value went to {formatUSD(newUSDValue)}
             </p>
-            <div className="p-3 rounded-xl bg-[var(--success)]/10 border border-[var(--success)]/20 mb-4 mx-4">
-              <div className="flex items-center justify-center gap-2">
-                <CheckCircle className="w-4 h-4 text-[var(--success)]" />
-                <span className="text-sm font-semibold text-[var(--success)]">
-                  All players have been refunded
-                </span>
-              </div>
-            </div>
+            <p className="text-sm text-[var(--muted)] mb-6">
+              Claim your refund in Round History
+            </p>
             <button
               onClick={handleNewRound}
               className="w-full py-4 rounded-2xl font-bold bg-[var(--accent)] text-white hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2"

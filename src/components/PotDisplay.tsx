@@ -1,42 +1,29 @@
 import { useEffect } from 'react';
 import { useGameStore } from '../store/gameStore';
 import { formatUSD, formatOG } from '../utils/format';
-import { Target, TrendingUp, TrendingDown, Coins, RefreshCw, Activity, AlertTriangle } from 'lucide-react';
+import { Target, Coins } from 'lucide-react';
 
 export default function PotDisplay() {
   const { 
     currentRound, 
-    ogPrice, 
-    priceChange, 
-    priceHistory,
-    isPriceLoading,
-    lastPriceUpdate,
     updatePriceFromOracle 
   } = useGameStore();
   
   const { potUSDValue, potOGAmount, target, status, roundNumber } = currentRound;
   
-  // Update price from oracle every 5 seconds
   useEffect(() => {
     updatePriceFromOracle();
     const interval = setInterval(updatePriceFromOracle, 5000);
     return () => clearInterval(interval);
   }, [updatePriceFromOracle]);
   
-  const distanceToWin = target - potUSDValue;
+  const distanceToTarget = target - potUSDValue;
   const progress = (potUSDValue / target) * 100;
   
   const formatted = formatUSD(potUSDValue);
   const parts = formatted.split('.');
   const dollars = parts[0];
   const cents = parts[1] || '00';
-  
-  const isPositiveChange = priceChange >= 0;
-  
-  // Calculate mini chart for price sparkline
-  const maxPrice = Math.max(...priceHistory.map(p => p.price), ogPrice);
-  const minPrice = Math.min(...priceHistory.map(p => p.price), ogPrice);
-  const priceRange = maxPrice - minPrice || 0.01;
   
   const statusConfig = {
     ACTIVE: { 
@@ -47,7 +34,7 @@ export default function PotDisplay() {
     },
     WON: { 
       color: 'var(--gold)', 
-      bg: 'rgba(245, 158, 11, 0.1)', 
+      bg: 'rgba(245, 158, 11, 0.15)', 
       label: 'WON',
       pulse: false 
     },
@@ -88,97 +75,12 @@ export default function PotDisplay() {
         </div>
       </div>
       
-      {/* Critical Price Warning Banner */}
-      {status === 'ACTIVE' && (
-        <div className="w-full max-w-sm mb-4 p-3 rounded-xl bg-[var(--warning)]/10 border-2 border-[var(--warning)]/30">
-          <div className="flex items-start gap-2">
-            <AlertTriangle className="w-5 h-5 text-[var(--warning)] flex-shrink-0 mt-0.5" />
-            <div>
-              <p className="text-sm font-bold text-[var(--warning)]">Watch the 0G Price!</p>
-              <p className="text-xs text-[var(--muted)] mt-0.5">
-                The pot value changes with price. Time your deposit to hit exactly $1M!
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-      
-      {/* Oracle Price Display - Prominent */}
-      <div className="w-full max-w-sm mb-4">
-        <div className="glass rounded-2xl p-4 border-2 border-[var(--accent)]/20">
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2">
-              <Activity className={`w-4 h-4 ${isPriceLoading ? 'animate-pulse text-[var(--muted)]' : 'text-[var(--success)]'}`} />
-              <span className="text-xs font-bold text-[var(--accent)] uppercase tracking-wider">
-                0G Oracle Price
-              </span>
-            </div>
-            <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-[var(--success)]/10 text-[var(--success)] text-xs font-semibold">
-              <RefreshCw className="w-3 h-3" />
-              <span>LIVE</span>
-            </div>
-          </div>
-          
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="flex items-baseline gap-2">
-                <span className="text-3xl font-black">${ogPrice.toFixed(4)}</span>
-                <div className={`flex items-center gap-0.5 px-2 py-0.5 rounded-full text-xs font-bold ${
-                  isPositiveChange 
-                    ? 'bg-[var(--success)]/10 text-[var(--success)]' 
-                    : 'bg-[var(--error)]/10 text-[var(--error)]'
-                }`}>
-                  {isPositiveChange ? (
-                    <TrendingUp className="w-3 h-3" />
-                  ) : (
-                    <TrendingDown className="w-3 h-3" />
-                  )}
-                  <span>{isPositiveChange ? '+' : ''}{priceChange.toFixed(2)}%</span>
-                </div>
-              </div>
-              {lastPriceUpdate && (
-                <p className="text-xs text-[var(--muted)] mt-1">
-                  Updated {Math.floor((Date.now() - lastPriceUpdate) / 1000)}s ago
-                </p>
-              )}
-            </div>
-            
-            {/* Mini sparkline */}
-            {priceHistory.length > 1 && (
-              <div className="w-24 h-10">
-                <svg viewBox="0 0 80 32" className="w-full h-full">
-                  <polyline
-                    fill="none"
-                    stroke={isPositiveChange ? 'var(--success)' : 'var(--error)'}
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    points={priceHistory.slice(-20).map((p, i) => {
-                      const x = (i / 19) * 80;
-                      const y = 32 - ((p.price - minPrice) / priceRange) * 28 - 2;
-                      return `${x},${y}`;
-                    }).join(' ')}
-                  />
-                </svg>
-              </div>
-            )}
-          </div>
-          
-          <div className="mt-3 pt-3 border-t border-[var(--border)]">
-            <p className="text-xs text-[var(--muted)]">
-              <span className="font-semibold text-[var(--text)]">Key Insight:</span> 1 0G = ${ogPrice.toFixed(4)}. 
-              To add $100, you need {(100 / ogPrice).toFixed(2)} 0G.
-            </p>
-          </div>
-        </div>
-      </div>
-      
-      <div className="text-center mb-4">
+      <div className="text-center mb-4 gold-glow-bg">
         <p className="text-xs font-semibold text-[var(--muted)] uppercase tracking-widest mb-3">
-          Current Pot (USD)
+          Current Pot
         </p>
         
-        <div className="animate-glow rounded-3xl px-6 py-4 bg-[var(--surface)] border border-[var(--border)]">
+        <div className="animate-glow rounded-3xl px-6 py-4 bg-[var(--surface)] border border-[var(--border)] gold-card">
           <div className="flex items-baseline justify-center gap-0.5">
             <span className="text-4xl sm:text-5xl md:text-6xl font-black tracking-tight">
               {dollars}
@@ -207,23 +109,41 @@ export default function PotDisplay() {
           </span>
         </div>
         
-        <div className="h-2.5 bg-[var(--border)] rounded-full overflow-hidden">
+        <div className="h-2.5 bg-[var(--border)] rounded-full overflow-hidden shadow-inner">
           <div 
-            className="h-full bg-[var(--accent)] rounded-full transition-all duration-700 ease-out"
-            style={{ width: `${Math.min(progress, 100)}%` }}
-          />
+            className="h-full rounded-full transition-all duration-700 ease-out relative overflow-hidden"
+            style={{ 
+              width: `${Math.min(progress, 100)}%`,
+              background: 'linear-gradient(90deg, #1A1A1A 0%, #3A3A3A 100%)',
+              boxShadow: '0 0 10px rgba(255, 200, 0, 0.2)'
+            }}
+          >
+            <div 
+              className="absolute inset-0 shimmer"
+              style={{
+                background: 'linear-gradient(90deg, transparent 0%, rgba(255, 200, 0, 0.15) 50%, transparent 100%)',
+                backgroundSize: '200% 100%'
+              }}
+            />
+          </div>
         </div>
         
         {status === 'ACTIVE' && (
           <div className="flex items-center justify-between mt-2 text-xs text-[var(--muted)]">
             <span className="font-medium">{progress.toFixed(2)}%</span>
-            <span>{formatUSD(Math.abs(distanceToWin))} {distanceToWin >= 0 ? 'to win' : 'over'}</span>
+            <span>{formatUSD(Math.abs(distanceToTarget))} {distanceToTarget >= 0 ? 'to win' : 'over'}</span>
           </div>
         )}
       </div>
       
       {status === 'ACTIVE' && (
-        <div className="flex items-center gap-2 px-4 py-2.5 bg-[var(--accent-light)] rounded-full border border-[var(--border)]">
+        <div 
+          className="flex items-center gap-2 px-4 py-2.5 rounded-full border"
+          style={{ 
+            backgroundColor: 'rgba(255, 200, 0, 0.06)',
+            borderColor: 'rgba(255, 200, 0, 0.15)'
+          }}
+        >
           <span className="text-sm font-semibold">
             Hit exactly {formatUSD(target)} to win $1,000,000!
           </span>

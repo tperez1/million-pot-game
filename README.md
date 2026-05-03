@@ -1,31 +1,104 @@
-# Million Dollar Precision Game
+# 💰 Million$ — Precision Pot Game
 
-A Web3 game where players try to make a crypto pot reach exactly $1,000,000.
+A Web3 game where players try to hit exactly $1,000,000 in a shared crypto pot.
 
-## 🎯 Game Rule
+---
 
-- Players deposit crypto into a shared pot
-- The pot value is tracked in USD
-- If a player hits exactly $1,000,000 → they win everything
-- If the pot exceeds $1,000,000 → the round fails
-- All players can claim full refunds
+## 🎯 Core Idea
 
-## 🤖 AI Agent (Milly)
+This is a precision based game, not a lottery.
 
-This project includes an AI Game Master that:
-- Explains the game
-- Simulates deposits
-- Warns about risk
-- Creates live commentary
+Players must time their deposit perfectly based on price volatility.
 
-## ⚙️ Stack
+- Deposit crypto into a shared pot  
+- Pot value is calculated in USD (based on live price)  
+- If the pot hits exactly $1,000,000 → winner takes all  
+- If it goes above → round fails  
+- All players can claim full refund  
 
-- EVM Smart Contract
-- 0G Labs (AI)
+---
+
+## ⚠️ Why It's Interesting
+
+- Price changes constantly  
+- Timing is everything  
+- Small mistakes can break the round  
+- Creates tension near the target  
+
+It’s a mix of game theory, market timing and on-chain mechanics.
+
+---
+
+## 🤖 AI Agent — Lady Milly
+
+This project includes a personality driven AI commentator.
+
+Lady Milly is always watching.
+
+She:
+- Explains the game in simple terms  
+- Reacts to how close the pot is  
+- Warns about risk  
+- Adds emotional pressure near $1M  
+- Answers user questions (simulated AI)
+
+Example:
+"Careful, darling… one wrong move and everything collapses."
+
+---
+
+## 🧠 AI Development Approach
+
+This project was built using AI-first development.
+
+- Iterative prompting  
+- UI generation  
+- Logic refinement  
+- Rapid prototyping  
+
+See: /docs/prompts.md
+
+---
+
+## ⚙️ Tech Stack
+
+- EVM Smart Contract (concept)
+- 0G Labs (AI-assisted development)
 - MetaMask / Rabby
+- React + Vite
 - Mobile-first UI
 
-## AI Development Process
+---
 
-This project was built using iterative AI prompting.
-See /docs/prompts.md
+## 🚧 Current State
+
+This is a frontend simulation prototype.
+
+- No real blockchain transactions yet  
+- No real funds involved  
+- Focus on UX, logic and interaction  
+
+---
+
+## 🚀 Vision
+
+This can evolve into:
+
+- Real smart contract game  
+- Live oracle integration  
+- On-chain pot tracking  
+- Real-time competition  
+
+---
+
+## 👤 About
+
+This is my first Web3 project.
+
+I built everything using 0G Labs and AI tools, learning during the process and turning an idea into a working product.
+
+---
+
+## 🔗 Demo
+
+(add your deployed link here)

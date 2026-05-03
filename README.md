@@ -101,4 +101,4 @@ I built everything using 0G Labs and AI tools, learning during the process and t
 
 ## 🔗 Demo
 
-(add your deployed link here)
+https://million-pot-game-3zrb.vercel.app/
